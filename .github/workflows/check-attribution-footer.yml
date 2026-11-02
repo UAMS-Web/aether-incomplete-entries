@@ -7,15 +7,10 @@ name: Check attribution footer
 # a tree sweep reads the filesystem, and a body is not on it. A squash merge
 # makes the body the commit message on the default branch.
 #
-# This repository is not a sync target, so it carries its own copy of the script the
-# template runs, byte-identical to shared/.claude/skills/writing-pull-requests/scripts/
-# check-attribution-footer.mjs in UAMS-Web/uams-claude-skills, at the path the template
-# names. Add-ons created from this template start with both files.
-#
 # Template: .claude/skills/writing-pull-requests/templates/check-attribution-footer.yml
 # in UAMS-Web/uams-claude-skills, copied to .github/workflows/check-attribution-footer.yml.
-# This header is the only part a repository may change. The synced-files skill's
-# check-workflow-copies.mjs fails when the rest differs from the template. The
+# The template owns the whole copy, this header included. The synced-files skill's
+# check-workflow-copies.mjs fails when the copy differs from the template. The
 # script it runs ships in the same skill, so no repository file is needed beyond
 # the synced .claude/ tree.
 #
@@ -37,9 +32,8 @@ name: Check attribution footer
 # `false`, skips it before a runner is dispatched and bills no minutes, and a public
 # repository, where the variable is unset, runs it as before. A skipped job reports
 # `skipped`, and GitHub counts a skipped required check as success, so a skipped run is
-# not a passing run: nothing has read the pull request while the switch is off. The gate
-# is in the template body, not the header, because a copy must match its template outside
-# the header.
+# not a passing run: nothing has read the pull request while the switch is off. A copy
+# matches its template in full, header included, and the sync rewrites it from the template.
 #
 # The job name, `Attribution footer`, is a required status check context in the repository's
 # ruleset, the same in every repository. Renaming it means changing the ruleset.
