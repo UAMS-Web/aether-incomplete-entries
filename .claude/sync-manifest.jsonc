@@ -82,6 +82,7 @@
     ".agents/skills/php-documentation/SKILL.md",
     ".agents/skills/phpunit-to-pest/SKILL.md",
     ".agents/skills/repository-settings/SKILL.md",
+    ".agents/skills/repository-settings/scripts/apply-addon-settings.mjs",
     ".agents/skills/repository-settings/scripts/check-repository-settings.mjs",
     ".agents/skills/rule-adversarial-review/SKILL.md",
     ".agents/skills/rule-american-english-prose/SKILL.md",
@@ -112,6 +113,7 @@
     ".agents/skills/synced-files/SKILL.md",
     ".agents/skills/synced-files/scripts/check-synced-files.mjs",
     ".agents/skills/synced-files/scripts/check-workflow-copies.mjs",
+    ".agents/skills/synced-files/templates/synced-checks.yml",
     ".agents/skills/tests/SKILL.md",
     ".agents/skills/tests/templates/laravel/phpunit.xml",
     ".agents/skills/tests/templates/laravel/tests/Pest.php.dist",
@@ -253,6 +255,7 @@
     ".claude/skills/php-documentation/SKILL.md",
     ".claude/skills/phpunit-to-pest/SKILL.md",
     ".claude/skills/repository-settings/SKILL.md",
+    ".claude/skills/repository-settings/scripts/apply-addon-settings.mjs",
     ".claude/skills/repository-settings/scripts/check-repository-settings.mjs",
     ".claude/skills/security-audit/SKILL.md",
     ".claude/skills/security-audit/security-audit.workflow.js",
@@ -262,6 +265,7 @@
     ".claude/skills/synced-files/SKILL.md",
     ".claude/skills/synced-files/scripts/check-synced-files.mjs",
     ".claude/skills/synced-files/scripts/check-workflow-copies.mjs",
+    ".claude/skills/synced-files/templates/synced-checks.yml",
     ".claude/skills/tests/SKILL.md",
     ".claude/skills/tests/templates/laravel/phpunit.xml",
     ".claude/skills/tests/templates/laravel/tests/Pest.php.dist",
@@ -404,8 +408,9 @@
     ".agents/skills/php-coding-standards/SKILL.md": "f2b66e8e3a99b2ea3994e72cb9472b1a25747cb86da2a19965692c50891a6f37",
     ".agents/skills/php-documentation/SKILL.md": "2513b8aa9cf3e9f168f7e90e957627de484f6a71d51fb93d38ddca32342240d7",
     ".agents/skills/phpunit-to-pest/SKILL.md": "9cb29226657aa674abe9e1e3468712cab8a0312eea3c9dcd6bdcd812fe489ac4",
-    ".agents/skills/repository-settings/SKILL.md": "7fb13b9bf2800a5b80a879f712533a327260ff6839b7ebb4619ec76fa1732f17",
-    ".agents/skills/repository-settings/scripts/check-repository-settings.mjs": "2a22f6bcb1cebf0515d5c7d87e5fbe5590399a4eaa6273c1308511c1b823d6f9",
+    ".agents/skills/repository-settings/SKILL.md": "b5b47d91fcbfb89a89587affbd9b5908f567a83be50cd0604810b394bf780f68",
+    ".agents/skills/repository-settings/scripts/apply-addon-settings.mjs": "11095efcc103ee61222a898e199952ecf6f4e2daccff246e5f29e03d3be11ef7",
+    ".agents/skills/repository-settings/scripts/check-repository-settings.mjs": "d472debf23328728efba70814286704f19247938b6fdd79741b1eb86b7d0bc39",
     ".agents/skills/rule-adversarial-review/SKILL.md": "44ce4458bf2da5fd2b631dd2d66b5166081c475e04225bc8a06a27b7db036009",
     ".agents/skills/rule-american-english-prose/SKILL.md": "f6c39215cefcce86aef25f0eefc7cd0093b90f6c00cb7cd10b3c2fb39c1ae478",
     ".agents/skills/rule-an-empty-result-is-not-evidence/SKILL.md": "d5813cf69f4e6be8673af8441f1090b55d197ced8f4c709649b59492016e6842",
@@ -435,6 +440,7 @@
     ".agents/skills/synced-files/SKILL.md": "7be9c46c04a6aefd4c736cc0954639374d6d8ca6d7fe99d93bdb08762df6a405",
     ".agents/skills/synced-files/scripts/check-synced-files.mjs": "ef278ea246ff4ad09910be0c97bfeadc95cf3e67fcd93d820941f5a55ef4259b",
     ".agents/skills/synced-files/scripts/check-workflow-copies.mjs": "2a9de180acdaef472395a7d35dce68cd2d026bc3c6a76cb877d145f103df92a3",
+    ".agents/skills/synced-files/templates/synced-checks.yml": "fa4b43a607b7a171e5b5a4beac15e0ced540845f8f8381602ec04143255cef21",
     ".agents/skills/tests/SKILL.md": "20772f07f47fd7d71829ed58ce21323f5ff0f350bdcf0939cd3fd4961e53d99b",
     ".agents/skills/tests/templates/laravel/phpunit.xml": "f84f38758017a5932a8c8adeee0ecfb165aee0582198b51a99e49d0a0f5671f3",
     ".agents/skills/tests/templates/laravel/tests/Pest.php.dist": "b54229655d201735442f88d4a8badba73a6fdc4b3eb6b0451e600561a2e698be",
@@ -575,8 +581,9 @@
     ".claude/skills/php-coding-standards/SKILL.md": "f2b66e8e3a99b2ea3994e72cb9472b1a25747cb86da2a19965692c50891a6f37",
     ".claude/skills/php-documentation/SKILL.md": "2513b8aa9cf3e9f168f7e90e957627de484f6a71d51fb93d38ddca32342240d7",
     ".claude/skills/phpunit-to-pest/SKILL.md": "848e428046555bd9f33491866be116de23c7f3bd6183326cc56c82ddf03678dd",
-    ".claude/skills/repository-settings/SKILL.md": "7fb13b9bf2800a5b80a879f712533a327260ff6839b7ebb4619ec76fa1732f17",
-    ".claude/skills/repository-settings/scripts/check-repository-settings.mjs": "2a22f6bcb1cebf0515d5c7d87e5fbe5590399a4eaa6273c1308511c1b823d6f9",
+    ".claude/skills/repository-settings/SKILL.md": "b5b47d91fcbfb89a89587affbd9b5908f567a83be50cd0604810b394bf780f68",
+    ".claude/skills/repository-settings/scripts/apply-addon-settings.mjs": "11095efcc103ee61222a898e199952ecf6f4e2daccff246e5f29e03d3be11ef7",
+    ".claude/skills/repository-settings/scripts/check-repository-settings.mjs": "d472debf23328728efba70814286704f19247938b6fdd79741b1eb86b7d0bc39",
     ".claude/skills/security-audit/SKILL.md": "e3de4f92c2d9237f7571f788f751a2921ee8be25b4b7d1bd276ffbecc86d4998",
     ".claude/skills/security-audit/security-audit.workflow.js": "265cb8e15924e6c912e6504fea5bfb64ec770902ec7bcb8aac7000a24a72e101",
     ".claude/skills/statamic-addon-lifecycle/SKILL.md": "fd53fba645ed95f03854a1f6df4b10a0c9ad11931cfcaaf3dbb0c1df75d28e59",
@@ -585,6 +592,7 @@
     ".claude/skills/synced-files/SKILL.md": "7be9c46c04a6aefd4c736cc0954639374d6d8ca6d7fe99d93bdb08762df6a405",
     ".claude/skills/synced-files/scripts/check-synced-files.mjs": "ef278ea246ff4ad09910be0c97bfeadc95cf3e67fcd93d820941f5a55ef4259b",
     ".claude/skills/synced-files/scripts/check-workflow-copies.mjs": "2a9de180acdaef472395a7d35dce68cd2d026bc3c6a76cb877d145f103df92a3",
+    ".claude/skills/synced-files/templates/synced-checks.yml": "fa4b43a607b7a171e5b5a4beac15e0ced540845f8f8381602ec04143255cef21",
     ".claude/skills/tests/SKILL.md": "63aa469829330768a03ccb34595c23e349160740765b77ae26f564652571300d",
     ".claude/skills/tests/templates/laravel/phpunit.xml": "f84f38758017a5932a8c8adeee0ecfb165aee0582198b51a99e49d0a0f5671f3",
     ".claude/skills/tests/templates/laravel/tests/Pest.php.dist": "b54229655d201735442f88d4a8badba73a6fdc4b3eb6b0451e600561a2e698be",
@@ -657,6 +665,11 @@
     ".cursor/rules/sync-pr-branch.mdc": "b933bebffcf41ea3cbbff37e45ffa07a39a00d24e882eacb2e12a5fe0ee3b90f",
     ".cursor/rules/verify-claims-before-a-third-party-post.mdc": "842ee5b28e20b0b64108a710f27fdaccbcf46fd975bc6be1b6fda5c0df4ddb90",
     ".cursor/rules/worktrees.mdc": "2cf3744a889c50e2dcf6de824084ae54ef5621824ffd8a526d9bd3be79f4dd0a"
+  },
+  "seeds": {
+    ".github/workflows/synced-checks.yml": {
+      "mode": "replace"
+    }
   },
   "settings": {
     ".claude/settings.json": {
