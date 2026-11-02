@@ -148,6 +148,34 @@ jobs:
       - run: composer test:mutate-ignore
 
 
+  synced-files:
+    name: Synced files (no hand-edited rules or skills)
+    runs-on: ubuntu-latest
+    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
+    if: vars.RUN_REMOTE_CI != 'false'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Fails, naming the file, when a rule or skill the sync manages was edited by hand.
+      - run: node .claude/skills/synced-files/scripts/check-synced-files.mjs
+
+  mutation-instrument:
+    name: Mutation instrument (a mutant child launches)
+    runs-on: ubuntu-latest
+    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
+    if: vars.RUN_REMOTE_CI != 'false'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      # Fails when `pest --mutate` could not execute a mutant, which would score every mutant killed.
+      - run: composer test:mutation-instrument
+
   parallel-safe:
     name: Parallel-safe tests (no shared state)
     runs-on: ubuntu-latest
