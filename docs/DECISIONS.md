@@ -35,3 +35,13 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** Snapshotting the synced files into the template: every new add-on would begin with a stale copy that conflicts with its first sync pull request. Copying a license from an existing add-on: legal has not decided which license applies.
 
 **Companion.** `UAMS-Web/uams-statamic#261`.
+
+## 2026-11-02: Renamed from the template, and no config file yet (UAMS-Web/aether-incomplete-entries#2)
+
+**Decision.** The package is `uams-web/aether-incomplete-entries` with namespace `UAMSWeb\Aether\IncompleteEntries\`. The template's placeholder `config/` file and its publish-tag test are dropped.
+
+**Why.** The add-on has no settings until the audit moves in (the next ticket), and an empty config file would publish a file with nothing in it. The audit's ticket adds `config/aether-incomplete-entries.php`, with its tag, if the move turns up a site-specific value.
+
+**Rejected.** Keeping the empty file renamed: it ships and publishes nothing, and the test that pins it would pin an empty array.
+
+**Companion.** UAMS-Web/aether-incomplete-entries#2.

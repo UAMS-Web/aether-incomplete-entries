@@ -1,12 +1,14 @@
 {
-    "name": "uams-web/statamic-addon-template",
-    "description": "Starting point for UAMS Statamic add-ons. Replace this description when you start an add-on from it.",
+    "name": "uams-web/aether-incomplete-entries",
+    "description": "Finds published entries whose required or expected fields are empty, so editors can complete them. An Aether add-on for Statamic.",
     "keywords": [
         "statamic",
-        "statamic-addon"
+        "statamic-addon",
+        "aether",
+        "incomplete-entries"
     ],
     "type": "statamic-addon",
-    "homepage": "https://github.com/UAMS-Web/statamic-addon-template",
+    "homepage": "https://github.com/UAMS-Web/aether-incomplete-entries",
     "authors": [
         {
             "name": "UAMS Web Services"
@@ -17,27 +19,27 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/UAMS-Web/statamic-addon-template/issues",
-        "source": "https://github.com/UAMS-Web/statamic-addon-template"
+        "issues": "https://github.com/UAMS-Web/aether-incomplete-entries/issues",
+        "source": "https://github.com/UAMS-Web/aether-incomplete-entries"
     },
     "autoload": {
         "psr-4": {
-            "UAMSWeb\\AddonTemplate\\": "src/"
+            "UAMSWeb\\Aether\\IncompleteEntries\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "UAMSWeb\\AddonTemplate\\Tests\\": "tests/"
+            "UAMSWeb\\Aether\\IncompleteEntries\\Tests\\": "tests/"
         }
     },
     "extra": {
         "statamic": {
-            "name": "Addon Template",
-            "description": "Replace this description when you start an add-on from the template."
+            "name": "Aether Incomplete Entries",
+            "description": "Finds published entries whose required or expected fields are empty, so editors can complete them."
         },
         "laravel": {
             "providers": [
-                "UAMSWeb\\AddonTemplate\\ServiceProvider"
+                "UAMSWeb\\Aether\\IncompleteEntries\\ServiceProvider"
             ]
         },
         "composer-exit-on-patch-failure": true
