@@ -24,6 +24,14 @@ name: CI
 # updating that ruleset's list in the same change: a renamed job leaves the old name pending
 # forever and blocks every pull request, and a new job is not required until it is listed.
 # Job names must stay unique across all workflows in this repository.
+#
+# AGGREGATE. The final `CI` job `needs:` every other job in this file and fails unless each one
+# succeeded, so a ruleset can require the one context `CI` (the `required_checks` value
+# `ci-aggregate`) instead of every job name. Add, rename or remove a job and the `needs:` list of
+# `CI` changes in the same change; the `aggregate-needs` job runs the code-quality skill's
+# check-aggregate-needs.mjs and fails the pull request when a job is missing from that list. A job
+# in another workflow file cannot be listed (`needs:` reaches only its own file), so the jobs of
+# `synced-checks.yml` and the pull-request-body workflows stay required by their own names.
 # `check-required-checks.yml` compares the two lists and reports drift; see its header for the
 # order in which a job and its ruleset entry change.
 
@@ -79,6 +87,23 @@ jobs:
 
       # Fails, naming the two entries, when docs/DECISIONS.md is out of order.
       - run: node scripts/check-decision-log-order.mjs
+
+  aggregate-needs:
+    name: Aggregate needs (CI covers every job)
+    runs-on: ubuntu-latest
+    # Budget kill-switch: see the RUN_REMOTE_CI note in the header.
+    if: vars.RUN_REMOTE_CI != 'false'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      # Fails, naming the job, when a job is missing from the `needs:` list of `CI` or a fixed
+      # required name is reported by no job. Allow-list: .github/aggregate-needs-allow.json.
+      - run: node .claude/skills/code-quality/scripts/check-aggregate-needs.mjs
 
   scripts:
     name: Guard-script tests (vitest)
@@ -264,3 +289,28 @@ jobs:
 
       - run: composer stan
       - run: composer test
+
+  # The one check a ruleset requires from this workflow. Keep `needs:` listing every other job
+  # in the file; `aggregate-needs` checks it. `skipped` and `cancelled` fail as well as `failure`:
+  # a job that did not run proved nothing. The RUN_REMOTE_CI gate is repeated here so the switch
+  # skips this job with the rest; without it `always()` would run it and fail on skipped needs.
+  ci:
+    name: CI
+    needs: [composer-validate, no-emoji, aggregate-needs, scripts, built-assets, mutate-ignore, parallel-safe, pint, rector, phpstan, pest, compatibility-lowest, compatibility-php85]
+    if: always() && vars.RUN_REMOTE_CI != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every needed job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Needed job results: $RESULTS"
+          # An empty list (an emptied `needs:`, a dropped `env:`) would run no iterations and pass having read nothing.
+          if [ -z "$RESULTS" ]; then echo "::error::No needed job results to read"; exit 1; fi
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "::error::A needed job reported $result"
+              exit 1
+            fi
+          done
