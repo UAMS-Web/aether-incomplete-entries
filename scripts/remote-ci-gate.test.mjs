@@ -7,6 +7,9 @@ import { parse } from 'yaml'
 // private repository switches remote CI off with a variable instead of deleting the workflows.
 // A job added without it would bill Actions minutes on a private repository, so this fails then.
 const GATE = "vars.RUN_REMOTE_CI != 'false'"
+// The aggregate `CI` job needs `always()` so it still reports when a needed job fails, and repeats
+// the gate beside it so the switch skips it with the rest.
+const AGGREGATE_GATE = `always() && ${GATE}`
 const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml', 'check-required-checks.yml']
 
 /**
@@ -22,7 +25,7 @@ export function ungatedJobs(source) {
     }
 
     return Object.entries(jobs)
-        .filter(([, job]) => job?.if !== GATE)
+        .filter(([, job]) => job?.if !== GATE && job?.if !== AGGREGATE_GATE)
         .map(([id]) => id)
 }
 
@@ -39,6 +42,18 @@ describe('the RUN_REMOTE_CI gate', () => {
         const source = ['jobs:', '  gated:', `    if: ${GATE}`, '    runs-on: ubuntu-latest', '  added:', '    runs-on: ubuntu-latest', ''].join('\n')
 
         expect(ungatedJobs(source)).toEqual(['added'])
+    })
+
+    it('accepts the aggregate form, always() beside the gate', () => {
+        const source = ['jobs:', '  ci:', `    if: ${AGGREGATE_GATE}`, '    runs-on: ubuntu-latest', ''].join('\n')
+
+        expect(ungatedJobs(source)).toEqual([])
+    })
+
+    it('names a bare always(), which would run with the switch off', () => {
+        const source = ['jobs:', '  ci:', '    if: always()', '    runs-on: ubuntu-latest', ''].join('\n')
+
+        expect(ungatedJobs(source)).toEqual(['ci'])
     })
 
     it('names a job whose condition is something else', () => {
