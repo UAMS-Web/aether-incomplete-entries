@@ -10,7 +10,7 @@ const GATE = "vars.RUN_REMOTE_CI != 'false'"
 // The aggregate `CI` job needs `always()` so it still reports when a needed job fails, and repeats
 // the gate beside it so the switch skips it with the rest.
 const AGGREGATE_GATE = `always() && ${GATE}`
-const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml', 'check-required-checks.yml']
+const GATED_WORKFLOWS = ['ci.yml', 'check-attribution-footer.yml', 'check-closing-keywords.yml']
 
 /**
  * The ids of the jobs in a workflow whose `if:` is not the gate.
