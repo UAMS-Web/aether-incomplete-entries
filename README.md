@@ -2,7 +2,35 @@
 
 A Statamic add-on, part of the Aether ecosystem, that audits published entries against their blueprints and reports the ones that fail, so editors can complete them.
 
-> **Status:** the package is being set up. The audit (a Control Panel widget, a scan command and the cache invalidation behind them) moves in from the UAMS site in a later change, so this release has no features yet. This README describes only what exists.
+## What it does
+
+The add-on audits every published entry against its blueprint and lists the ones that fail validation, so editors can find and complete them.
+
+- **Dashboard widget** `incomplete_published_entries`: a table of the failing entries with a link to each edit form, paginated, and filtered by what the signed-in user may view. It never scans inside a request. It reads the result of the last scan and says so when no scan has completed, when entries have been saved since the last scan, or when an explicit `limit` truncated the audit.
+- **Scan command** `cp:scan-incomplete-published-entries`: validates the entries and stores the result for the widget. The add-on schedules it hourly, in the background and without overlapping itself.
+- **Cache invalidation**: saving an entry records when content changed, and keeps the last scan so the dashboard stays warm.
+
+Enable the widget in `config/statamic/cp.php`:
+
+```php
+'widgets' => [
+    ['type' => 'incomplete_published_entries', 'collections' => ['pages'], 'per_page' => 25],
+],
+```
+
+`collections` limits the audit to those handles, `limit` caps how many entries one scan checks (the default is no cap), `per_page` sets the page size and `title` overrides the heading.
+
+### Configuration
+
+Publish the config file with `php artisan vendor:publish --tag=aether-incomplete-entries-config`.
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `schedule.enabled` | `true` | Schedule the scan command hourly. Set it to `false` to schedule `cp:scan-incomplete-published-entries` from the application instead. |
+
+The widget's view is `aether-incomplete-entries::widgets.incomplete_published_entries`; publish or override it from `resources/views/vendor/aether-incomplete-entries`.
+
+The validation service behind the audit, `UAMSWeb\Aether\IncompleteEntries\Services\EntryValidation\EntryValidator`, can be resolved from the container: `validate($entry, $blueprint)` returns an `EntryValidationResult` carrying the validation errors, their attribute labels and the handles of the fields visible under the blueprint's conditions. It imports nothing from the host application.
 
 ## Requirements
 
