@@ -18,22 +18,16 @@ name: CI
 # variable, so the gate does nothing there. `scripts/remote-ci-gate.test.mjs` fails when a job
 # is added without it.
 #
-# REQUIRED CHECKS. The organization ruleset "main: required checks
-# (<this repository>)" requires every job's `name:` below, plus the `name:` of the two
-# pull-request-body workflows, by that exact string. Renaming or adding a job here means
-# updating that ruleset's list in the same change: a renamed job leaves the old name pending
-# forever and blocks every pull request, and a new job is not required until it is listed.
-# Job names must stay unique across all workflows in this repository.
-#
 # AGGREGATE. The final `CI` job `needs:` every other job in this file and fails unless each one
 # succeeded, so a ruleset can require the one context `CI` (the `required_checks` value
 # `ci-aggregate`) instead of every job name. Add, rename or remove a job and the `needs:` list of
 # `CI` changes in the same change; the `aggregate-needs` job runs the code-quality skill's
 # check-aggregate-needs.mjs and fails the pull request when a job is missing from that list. A job
 # in another workflow file cannot be listed (`needs:` reaches only its own file), so the jobs of
-# `synced-checks.yml` and the pull-request-body workflows stay required by their own names.
-# `check-required-checks.yml` compares the two lists and reports drift; see its header for the
-# order in which a job and its ruleset entry change.
+# `synced-checks.yml` are not covered by `CI`. The organization rulesets require `CI`, `Attribution
+# footer` and `Closing keywords` (the repository property `required_checks`); no ruleset lists a
+# job by name, so renaming a job here changes only the `needs:` list.
+# Job names must stay unique across all workflows in this repository.
 
 on:
   pull_request:
@@ -250,7 +244,7 @@ jobs:
   # update rewrites `composer.lock` in the runner only.
   # Two jobs rather than one matrix job: a job skipped by the RUN_REMOTE_CI gate is skipped before
   # a matrix expands, so it would report the literal name `Compatibility (${{ matrix.name }})` and
-  # the two required checks below would never report. Each job's `name:` is a required check.
+  # `CI` would never see them. Each job is listed in the `needs:` list of `CI`.
   compatibility-lowest:
     name: Compatibility (lowest statamic/cms)
     runs-on: ubuntu-latest
