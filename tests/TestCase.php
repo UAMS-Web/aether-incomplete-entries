@@ -75,6 +75,12 @@ abstract class TestCase extends AddonTestCase
         if ($path !== null) {
             $app['config']->set('cache.stores.outpost.path', $path);
         }
+
+        // Point the local search index at this worker's directory, if any
+        $searchPath = self::searchIndexPath($_SERVER['TEST_TOKEN'] ?? null);
+        if ($searchPath !== null) {
+            $app['config']->set('statamic.search.drivers.local.path', $searchPath);
+        }
     }
 
     /**
@@ -87,6 +93,24 @@ abstract class TestCase extends AddonTestCase
     public static function outpostCachePath(mixed $token): ?string
     {
         return is_string($token) || is_int($token) ? storage_path("framework/cache/outpost-data-{$token}") : null;
+    }
+
+    /**
+     * The local search index directory for a parallel worker token, or null
+     * outside a parallel run.
+     *
+     * Saving an entry updates the search index, and Statamic's local driver
+     * creates its directory with a check-then-create that is not safe against a
+     * second process creating it in between. With one directory shared by every
+     * worker, the first entry each worker saved raced for it and failed with
+     * `mkdir(): File exists` (#25). A directory per worker removes the race.
+     *
+     * @param  mixed  $token  The parallel worker token, or null outside a parallel run.
+     * @return ?string The worker's search index directory, or null without a usable token.
+     */
+    public static function searchIndexPath(mixed $token): ?string
+    {
+        return is_string($token) || is_int($token) ? storage_path("statamic/search-{$token}") : null;
     }
 
     /**
