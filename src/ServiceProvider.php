@@ -85,7 +85,7 @@ class ServiceProvider extends AddonServiceProvider
     ];
 
     /**
-     * Run the scan out of band, so the dashboard widget reads its result instead of
+     * Run the scan out of band (scratch check), so the dashboard widget reads its result instead of
      * scanning inside a request (UAMS-Web/uams-statamic-archive#2506). The scan takes
      * over a minute, so it runs in the background and never overlaps itself. Hourly,
      * because the widget keeps the last result through entry saves and only needs to
