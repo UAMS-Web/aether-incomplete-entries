@@ -27,6 +27,17 @@ Publish the config file with `php artisan vendor:publish --tag=aether-incomplete
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `schedule.enabled` | `true` | Schedule the scan command hourly. Set it to `false` to schedule `cp:scan-incomplete-published-entries` from the application instead. |
+| `custom_conditions` | `[]` | Server-side ports of the custom field conditions your site registers in the Control Panel: a map of each condition name to a class that implements `UAMSWeb\Aether\IncompleteEntries\Contracts\CustomCondition`. See below. |
+
+### Custom field conditions
+
+A field with a `custom <name>:<params>` display condition is shown or hidden by a JavaScript function the Control Panel registers. The audit needs the same answer on the server, so it ships ports of seven conditions and reads any other name as hidden, logging a warning. To add a condition of your own, implement `CustomCondition` (`evaluate(array $params, mixed $target, array $values): bool`, following the JavaScript function) and register it by name:
+
+```php
+'custom_conditions' => ['hasVideo' => \App\Conditions\HasVideo::class],
+```
+
+The class is resolved from the container, so it can take dependencies. A registered name wins over a shipped one of the same name, and an entry that is not a condition name mapped to such a class throws when the audit runs.
 
 The widget's view is `aether-incomplete-entries::widgets.incomplete_published_entries`; publish or override it from `resources/views/vendor/aether-incomplete-entries`.
 

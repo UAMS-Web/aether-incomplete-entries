@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace UAMSWeb\Aether\IncompleteEntries\Services\EntryValidation;
 
+use InvalidArgumentException;
+use UAMSWeb\Aether\IncompleteEntries\Contracts\CustomCondition;
+
 /**
  * Server-side ports of the custom field conditions the Control Panel registers in
  * `resources/js/conditions/` (#508), so a field the editor shows is validated and a
@@ -14,6 +17,10 @@ namespace UAMSWeb\Aether\IncompleteEntries\Services\EntryValidation;
  * value of the field the condition is keyed on), the trimmed `params` after the
  * colon, and the sibling `values`. Only the conditions a blueprint or fieldset uses
  * are ported; {@see self::SUPPORTED} lists them, and an unlisted name returns null.
+ *
+ * A host with custom conditions of its own registers a {@see CustomCondition} per name
+ * in the `custom_conditions` config key. A registered name is tried first, so a host
+ * can also replace one of the conditions listed here.
  */
 class CustomConditionEvaluator
 {
@@ -45,6 +52,13 @@ class CustomConditionEvaluator
      */
     public function evaluate(string $name, array $params, mixed $target, array $values): ?bool
     {
+        // A condition the host registered takes precedence
+        $registered = $this->registeredConditions()[$name] ?? null;
+
+        if ($registered !== null) {
+            return $registered->evaluate($params, $target, $values);
+        }
+
         return match ($name) {
             'articleVisible' => $this->articleVisible($values),
             'isNotEmpty' => $this->isTruthy($target),
@@ -59,6 +73,50 @@ class CustomConditionEvaluator
             'selectionCount' => $this->selectionCount($params, $target, $values),
             default => null,
         };
+    }
+
+    /**
+     * Every condition name this class evaluates: the listed ones and the host's.
+     *
+     * @return list<string>
+     */
+    public function names(): array
+    {
+        return [...self::SUPPORTED, ...array_diff(array_keys($this->registeredConditions()), self::SUPPORTED)];
+    }
+
+    /**
+     * The conditions the host registered in the `custom_conditions` config key.
+     *
+     * @return array<string, CustomCondition>
+     *
+     * @throws InvalidArgumentException When an entry is not a condition name mapped to a class that implements the contract
+     */
+    private function registeredConditions(): array
+    {
+        $configured = config('aether-incomplete-entries.custom_conditions', []);
+
+        if (! \is_array($configured)) {
+            throw new InvalidArgumentException('The aether-incomplete-entries.custom_conditions config must be an array of condition names to classes.');
+        }
+
+        $registered = [];
+
+        foreach ($configured as $name => $class) {
+            $condition = \is_string($class) && class_exists($class) ? app()->make($class) : null;
+
+            if (! \is_string($name) || $name === '' || ! $condition instanceof CustomCondition) {
+                throw new InvalidArgumentException(sprintf(
+                    'The aether-incomplete-entries.custom_conditions entry %s must map a condition name to a class that implements %s.',
+                    json_encode($name),
+                    CustomCondition::class,
+                ));
+            }
+
+            $registered[$name] = $condition;
+        }
+
+        return $registered;
     }
 
     /**
