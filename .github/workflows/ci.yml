@@ -1,7 +1,7 @@
 name: CI
 
 # The shared job chain (Composer validate, synced files, no-emoji, aggregate-needs, Pint, Rector,
-# PHPStan and Pest) is called from UAMS-Web/uams-ci-workflows at a release tag; its source is
+# PHPStan, mutate-ignore, mutate and Pest) is called from UAMS-Web/uams-ci-workflows at a release tag; its source is
 # `.claude/skills/code-quality/templates/ci-reusable.yml` in UAMS-Web/uams-claude-skills. The jobs
 # below the call are the ones the chain does not provide. When a job's command changes here, change
 # the matching `composer` script (and the other way round). The shared setup lives in
@@ -10,11 +10,14 @@ name: CI
 # - The pinned reference: `uses:` names a tag, never a branch, so a change to the shared chain
 #   reaches this repository only when the tag here moves. Dependabot does not move it.
 # - Inputs: `linux-only: true` keeps every job on `ubuntu-latest`, as this workflow ran before the
-#   call. `mutate: false` leaves the mutation job, and the annotation check that goes with it, to
-#   the ticket that turns them on (UAMS-Web/aether-incomplete-entries#30); `composer ci` runs both
-#   locally in the meantime. `mutate-paths` is the path that job will select changed files from.
+#   call. `mutate-paths` is the path the mutation job selects changed PHP files from, and
 #   `share-floor-seconds` is the summed class time below which the Pest job skips its slowest-class
 #   share check.
+# - What the mutation job mutates depends on the event. A pull request and a push to `main` mutate only
+#   the PHP files under `mutate-paths` that the commit adds, changes or renames; a commit that changes
+#   none passes with nothing mutated. A `workflow_dispatch` run mutates everything `composer mutate`
+#   covers, under the called workflow's `mutate-full-timeout-minutes` (180 by default). The job fails
+#   on any survivor, untested or uncovered mutant.
 # - The chain's checks report as `checks / <job name> (<operating system>)`.
 #
 # RUN_REMOTE_CI: budget kill-switch.
@@ -63,7 +66,6 @@ jobs:
     uses: UAMS-Web/uams-ci-workflows/.github/workflows/ci.yml@v0.9.0
     with:
       linux-only: true
-      mutate: false
       mutate-paths: src
       # The whole suite sums to about 16 seconds on a runner, so one class holding a third of it
       # says little about the band; the share check starts at 30 seconds, the 900-second backstop
