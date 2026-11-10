@@ -6,6 +6,7 @@ namespace UAMSWeb\Aether\IncompleteEntries\Tests\Support;
 
 use Illuminate\Support\Facades\File;
 use Statamic\Facades\Blueprint;
+use Statamic\Facades\Path;
 use Statamic\Facades\Stache;
 use Statamic\Testing\Concerns\PreventsSavingStacheItemsToDisk;
 use UAMSWeb\Aether\IncompleteEntries\Tests\TestCase;
@@ -66,6 +67,43 @@ abstract class StacheIsolatedTestCase extends TestCase
 
         // Rebuild the index from the empty roots
         Stache::clear();
+    }
+
+    /**
+     * Re-root every Stache store beneath this test's throwaway directory.
+     *
+     * Replaces the upstream trait's method of the same name, which Statamic's addon test
+     * case calls first (with its own `tests/__fixtures__/dev-null`) and this class calls
+     * again (with the throwaway root). The upstream version splits on `/dev-null`, which
+     * matches neither store path the second time, so it appends the whole absolute store
+     * path to the root; a drive letter and colon in that path make it unwritable on
+     * Windows. Keep only the part of each store's directory below its `/dev-null/` segment
+     * (already re-rooted), or else below the `/__fixtures__/` directory (not yet re-rooted); a store kept elsewhere gets a directory named for its key.
+     */
+    protected function preventSavingStacheItemsToDisk(): void
+    {
+        $this->fakeStacheDirectory = Path::tidy($this->fakeStacheDirectory);
+
+        Stache::stores()->each(function ($store): void {
+            $directory = Path::tidy($store->directory());
+            $relative = null;
+
+            // Find where the store's path below the fixtures root begins
+            foreach (['/dev-null/', '/__fixtures__/'] as $marker) {
+                $position = strrpos($directory, $marker);
+
+                if ($position !== false) {
+                    $relative = substr($directory, $position + \strlen($marker));
+
+                    break;
+                }
+            }
+
+            // A store kept elsewhere (assets, revisions) gets a directory named for its key
+            $relative ??= $store->key();
+
+            $store->directory($this->fakeStacheDirectory.'/'.$relative);
+        });
     }
 
     protected function tearDown(): void
