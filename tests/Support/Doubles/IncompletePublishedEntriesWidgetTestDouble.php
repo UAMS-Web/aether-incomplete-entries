@@ -8,6 +8,7 @@ use Illuminate\Support\MessageBag;
 use Statamic\Entries\Entry as StatamicEntry;
 use Statamic\Fields\Blueprint;
 use Statamic\Fields\Field;
+use Statamic\Stache\Query\EntryQueryBuilder;
 use UAMSWeb\Aether\IncompleteEntries\Services\EntryValidation\EntryValidator;
 use UAMSWeb\Aether\IncompleteEntries\Widgets\IncompletePublishedEntries;
 
@@ -116,5 +117,34 @@ class IncompletePublishedEntriesWidgetTestDouble extends IncompletePublishedEntr
     public function exposeExtractEntryValuesForValidation(StatamicEntry $entry): array
     {
         return app(EntryValidator::class)->extractValues($entry);
+    }
+
+    /**
+     * The query the scan reads instead of the real one, when set.
+     */
+    private ?EntryQueryBuilder $fakeQuery = null;
+
+    /**
+     * Make the scan read the given published-entries query.
+     */
+    public function useQuery(EntryQueryBuilder $query): void
+    {
+        $this->fakeQuery = $query;
+    }
+
+    #[\Override]
+    protected function publishedEntriesQuery(): EntryQueryBuilder
+    {
+        return $this->fakeQuery ?? parent::publishedEntriesQuery();
+    }
+
+    /**
+     * Expose the user-agnostic scan.
+     *
+     * @return array{ids: list<string>, scanned: int, total: int, truncated: bool}
+     */
+    public function exposeFailingCandidateEntryIds(): array
+    {
+        return $this->failingCandidateEntryIds();
     }
 }

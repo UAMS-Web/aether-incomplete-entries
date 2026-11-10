@@ -230,7 +230,8 @@ it('reports unreadable entry data as a single error and no visible fields', func
 
 it('hands a dated entry its date in the format the blueprint expects', function (bool $timeEnabled, string $stored, string $expected): void {
     $collection = CollectionFacade::make(ENTRY_VALIDATOR_COLLECTION);
-    $collection->title('Entry validator service')->dated(true);
+    $collection->title('Entry validator service');
+    $collection->dated(true);
     $collection->save();
 
     $blueprint = Blueprint::makeFromFields(['date' => ['type' => 'date', 'time_enabled' => $timeEnabled]]);

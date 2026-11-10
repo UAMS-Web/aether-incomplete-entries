@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Mockery\MockInterface;
 use PHPUnit\Framework\Assert;
 use Statamic\Entries\Entry as StatamicEntry;
 use Statamic\Exceptions\BlueprintNotFoundException;
@@ -638,32 +639,24 @@ it("does not serve an uncapped audit out of a capped scan's cache entry", functi
 });
 
 /**
- * A widget whose published-entries query is the one given, with the scan exposed.
+ * A widget whose published-entries query is the one given.
  */
-function incompleteWidgetScanning(EntryQueryBuilder $query): IncompletePublishedEntriesWidgetTestDouble
+function incompleteWidgetScanning(MockInterface $query): IncompletePublishedEntriesWidgetTestDouble
 {
-    return new class($query) extends IncompletePublishedEntriesWidgetTestDouble
-    {
-        public function __construct(private readonly EntryQueryBuilder $fakeQuery) {}
+    Assert::assertInstanceOf(EntryQueryBuilder::class, $query);
 
-        protected function publishedEntriesQuery(): EntryQueryBuilder
-        {
-            return $this->fakeQuery;
-        }
+    $widget = new IncompletePublishedEntriesWidgetTestDouble;
+    $widget->useQuery($query);
 
-        /**
-         * @return array{ids: list<string>, scanned: int, total: int, truncated: bool}
-         */
-        public function scan(): array
-        {
-            return $this->failingCandidateEntryIds();
-        }
-    };
+    return $widget;
 }
 
 it('scans nothing and logs the user when an entry references a missing blueprint (#860)', function (bool $signedIn): void {
     if ($signedIn) {
-        $this->actingAs(User::make()->email('scanner@example.test')->makeSuper()->save() ?? User::findByEmail('scanner@example.test'));
+        $fixtures = setUpIncompleteWidgetCrossUserFixtures();
+        /** @var Statamic\Contracts\Auth\User $actor */
+        $actor = User::findByEmail($fixtures['superEmail']);
+        $this->actingAs($actor);
     }
 
     $query = Mockery::mock(EntryQueryBuilder::class);
@@ -679,7 +672,7 @@ it('scans nothing and logs the user when an entry references a missing blueprint
     $widget = incompleteWidgetScanning($query);
     $widget->setConfig(['limit' => 5]);
 
-    expect($widget->scan())->toMatchArray(['ids' => [], 'total' => 0, 'scanned' => 0]);
+    expect($widget->exposeFailingCandidateEntryIds())->toMatchArray(['ids' => [], 'total' => 0, 'scanned' => 0]);
 })->with([
     'signed in' => [true],
     'a guest' => [false],
@@ -724,5 +717,5 @@ it('skips entries without a usable blueprint and keeps scanning the rest', funct
     $widget = incompleteWidgetScanning($query);
     $widget->setConfig(['limit' => 10]);
 
-    expect($widget->scan()['ids'])->toBe([$failingId]);
+    expect($widget->exposeFailingCandidateEntryIds()['ids'])->toBe([$failingId]);
 });
