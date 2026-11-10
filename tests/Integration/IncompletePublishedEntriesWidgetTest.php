@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use PHPUnit\Framework\Assert;
+use Statamic\Entries\Entry as StatamicEntry;
+use Statamic\Exceptions\BlueprintNotFoundException;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection as CollectionFacade;
 use Statamic\Facades\Entry;
@@ -62,7 +65,7 @@ function incompleteWidgetCreateCollection(string $handle): void
  */
 function incompleteWidgetCreateFailingEntry(string $collection, string $slug, string $title): string
 {
-    /** @var Statamic\Entries\Entry $entry */
+    /** @var StatamicEntry $entry */
     $entry = Entry::make();
     $entry->collection($collection);
     $entry->slug($slug);
@@ -97,7 +100,7 @@ function setUpIncompleteWidgetCrossUserFixtures(): array
     );
 
     // Passing: published with the required field present.
-    /** @var Statamic\Entries\Entry $passing */
+    /** @var StatamicEntry $passing */
     $passing = Entry::make();
     $passing->collection(INCOMPLETE_WIDGET_TEST_COLLECTION);
     $passing->slug('passing-xuser');
@@ -187,7 +190,7 @@ afterEach(function (): void {
         /** @var EntryQueryBuilder $entryQuery */
         $entryQuery = Entry::query();
         $entryQuery->where('collection', $handle);
-        /** @var Collection<int, Statamic\Entries\Entry> $entries */
+        /** @var Collection<int, StatamicEntry> $entries */
         $entries = $entryQuery->get();
         foreach ($entries as $entry) {
             $entry->delete();
@@ -632,4 +635,94 @@ it("does not serve an uncapped audit out of a capped scan's cache entry", functi
 
     expect($scan['truncated'])->toBeFalse()
         ->and($scan['scanned'])->toBe(1);
+});
+
+/**
+ * A widget whose published-entries query is the one given, with the scan exposed.
+ */
+function incompleteWidgetScanning(EntryQueryBuilder $query): IncompletePublishedEntriesWidgetTestDouble
+{
+    return new class($query) extends IncompletePublishedEntriesWidgetTestDouble
+    {
+        public function __construct(private readonly EntryQueryBuilder $fakeQuery) {}
+
+        protected function publishedEntriesQuery(): EntryQueryBuilder
+        {
+            return $this->fakeQuery;
+        }
+
+        /**
+         * @return array{ids: list<string>, scanned: int, total: int, truncated: bool}
+         */
+        public function scan(): array
+        {
+            return $this->failingCandidateEntryIds();
+        }
+    };
+}
+
+it('scans nothing and logs the user when an entry references a missing blueprint (#860)', function (bool $signedIn): void {
+    if ($signedIn) {
+        $this->actingAs(User::make()->email('scanner@example.test')->makeSuper()->save() ?? User::findByEmail('scanner@example.test'));
+    }
+
+    $query = Mockery::mock(EntryQueryBuilder::class);
+    $query->shouldReceive('count')->andThrow(new BlueprintNotFoundException('ghost', 'collections.pages'));
+
+    $expectedUserId = $signedIn ? User::current()?->getAuthIdentifier() : null;
+
+    Log::shouldReceive('warning')->once()->with(
+        'IncompletePublishedEntries: skipped loading entries due to missing blueprint',
+        ['message' => 'Blueprint [ghost] not found', 'userId' => $expectedUserId]
+    );
+
+    $widget = incompleteWidgetScanning($query);
+    $widget->setConfig(['limit' => 5]);
+
+    expect($widget->scan())->toMatchArray(['ids' => [], 'total' => 0, 'scanned' => 0]);
+})->with([
+    'signed in' => [true],
+    'a guest' => [false],
+]);
+
+it('skips entries without a usable blueprint and keeps scanning the rest', function (): void {
+    incompleteWidgetCreateCollection(INCOMPLETE_WIDGET_TEST_COLLECTION);
+    $failingId = incompleteWidgetCreateFailingEntry(INCOMPLETE_WIDGET_TEST_COLLECTION, 'failing', 'Failing');
+    $failing = Entry::find($failingId);
+    Assert::assertNotNull($failing);
+
+    $collection = CollectionFacade::find(INCOMPLETE_WIDGET_TEST_COLLECTION);
+    Assert::assertNotNull($collection);
+
+    $missing = Mockery::mock(StatamicEntry::class);
+    $missing->shouldReceive('blueprint')->andThrow(new BlueprintNotFoundException('ghost'));
+    $missing->shouldReceive('id')->andReturn('missing-1');
+    $missing->shouldReceive('collection')->andReturn($collection);
+
+    $orphan = Mockery::mock(StatamicEntry::class);
+    $orphan->shouldReceive('blueprint')->andThrow(new BlueprintNotFoundException('ghost'));
+    $orphan->shouldReceive('id')->andReturn('missing-2');
+    $orphan->shouldReceive('collection')->andReturn(null);
+
+    $blueprintless = Mockery::mock(StatamicEntry::class);
+    $blueprintless->shouldReceive('blueprint')->andReturn(null);
+
+    Log::shouldReceive('warning')->once()->with(
+        'IncompletePublishedEntries: skipped entry with missing blueprint',
+        ['message' => 'Blueprint [ghost] not found', 'entryId' => 'missing-1', 'collection' => INCOMPLETE_WIDGET_TEST_COLLECTION]
+    );
+    Log::shouldReceive('warning')->once()->with(
+        'IncompletePublishedEntries: skipped entry with missing blueprint',
+        ['message' => 'Blueprint [ghost] not found', 'entryId' => 'missing-2', 'collection' => null]
+    );
+
+    $query = Mockery::mock(EntryQueryBuilder::class);
+    $query->shouldReceive('count')->andReturn(4);
+    $query->shouldReceive('limit')->andReturnSelf();
+    $query->shouldReceive('get')->andReturn(collect([$missing, $orphan, $blueprintless, $failing]));
+
+    $widget = incompleteWidgetScanning($query);
+    $widget->setConfig(['limit' => 10]);
+
+    expect($widget->scan()['ids'])->toBe([$failingId]);
 });

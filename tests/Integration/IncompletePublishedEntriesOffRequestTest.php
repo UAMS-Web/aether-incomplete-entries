@@ -626,3 +626,69 @@ it('reports a single empty page when nothing is visible', function (): void {
 
     expect(offRequestViewData($widget)['pagination'])->toMatchArray(['total' => 0, 'last_page' => 1, 'current_page' => 1]);
 });
+
+/**
+ * Run the scan command and return the lines it printed.
+ *
+ * @return list<string>
+ */
+function offRequestScanOutput(): array
+{
+    Artisan::call('cp:scan-incomplete-published-entries');
+
+    return array_values(array_filter(array_map(trim(...), explode("\n", Artisan::output()))));
+}
+
+it('lifts the PHP time limit before it scans', function (): void {
+    $before = ini_get('max_execution_time');
+    ini_set('max_execution_time', '30');
+
+    try {
+        offRequestScanOutput();
+
+        expect(ini_get('max_execution_time'))->toBe('0');
+    } finally {
+        ini_set('max_execution_time', (string) $before);
+    }
+});
+
+it('scans a widget registered with options of its own using those options', function (): void {
+    offRequestSeedFailingEntry();
+    config(['statamic.cp.widgets' => [
+        ['type' => 'incomplete_published_entries', 'limit' => 0],
+    ]]);
+
+    $capped = new IncompletePublishedEntries;
+    $capped->setConfig(['limit' => 0]);
+
+    expect(offRequestScanOutput())->toContain(
+        'Scanned 0 of 1 published entries; 0 failing. Stored under '.$capped->cacheKey().'.'
+    );
+});
+
+it('reaches a later widget entry past string entries and other widget types', function (): void {
+    offRequestSeedFailingEntry();
+    config(['statamic.cp.widgets' => [
+        'incomplete_published_entries',
+        ['type' => 'duplicate_people', 'limit' => 7],
+        ['type' => 'incomplete_published_entries', 'limit' => 0],
+    ]]);
+
+    $output = offRequestScanOutput();
+
+    // The default configuration and the one with a limit, nothing for the other widget
+    expect($output)->toHaveCount(2)
+        ->and($output[1])->toStartWith('Scanned 0 of 1 published entries');
+});
+
+it('scans each distinct configuration once, comparing options strictly and ignoring non-option keys', function (): void {
+    offRequestSeedFailingEntry();
+    config(['statamic.cp.widgets' => [
+        ['type' => 'incomplete_published_entries', 'limit' => 1],
+        ['type' => 'incomplete_published_entries', 'limit' => 1, 0 => 'positional'],
+        ['type' => 'incomplete_published_entries', 'limit' => '1'],
+    ]]);
+
+    // The default, limit 1, and limit '1' (the positional entry repeats limit 1)
+    expect(offRequestScanOutput())->toHaveCount(3);
+});
