@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Assert;
 use Statamic\Entries\Collection as StatamicCollection;
 use Statamic\Entries\Entry as StatamicEntry;
+use Statamic\Facades\AssetContainer;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection as CollectionFacade;
 use Statamic\Facades\Entry;
@@ -261,3 +264,77 @@ it('coerces a malformed replicator that follows an absent one', function (): voi
     expect(app(EntryValidator::class)->sanitizeMalformedReplicatorValues($blueprint, ['second' => 'junk']))
         ->toBe(['second' => []]);
 });
+
+/**
+ * One field of the given type and options, required.
+ *
+ * @param  array<mixed>  $field
+ * @return array<string, array<string, mixed>>
+ */
+function entryValidatorRequiredField(string $handle, array $field): array
+{
+    $config = ['validate' => ['required']];
+    foreach ($field as $key => $value) {
+        $config[(string) $key] = $value;
+    }
+
+    return [$handle => $config];
+}
+
+it('judges each field on its own options, entry after entry in one process', function (): void {
+    // Field option defaults are shared work inside Statamic (statamic/cms 6.40.0 builds
+    // them once), so a rule or condition one field sets must not reach a sibling, and one
+    // entry's judgment must not shape the next
+    entryValidatorCollection([
+        'mode' => ['type' => 'text'],
+        'always' => ['type' => 'text', 'validate' => ['required']],
+        'number' => ['type' => 'text', 'validate' => ['sometimes', 'integer']],
+        'when_yes' => ['type' => 'text', 'validate' => ['required', 'sometimes'], 'if' => ['mode' => 'equals yes']],
+        'unless_yes' => ['type' => 'text', 'validate' => ['required', 'sometimes'], 'unless' => ['mode' => 'equals yes']],
+        'free' => ['type' => 'text'],
+    ]);
+
+    $first = entryValidatorResult(entryValidatorEntry('first', ['title' => 'First', 'mode' => 'yes', 'number' => 'abc']));
+    $second = entryValidatorResult(entryValidatorEntry('second', ['title' => 'Second', 'mode' => 'no', 'always' => 'set', 'number' => '7']));
+    $third = entryValidatorResult(entryValidatorEntry('third', ['title' => 'Third', 'mode' => 'yes', 'always' => 'set', 'when_yes' => 'set']));
+    $again = entryValidatorResult(entryValidatorEntry('again', ['title' => 'Again', 'mode' => 'yes', 'number' => 'abc']));
+
+    expect($first->errors->keys())->toBe(['always', 'number', 'when_yes'])
+        ->and($second->errors->keys())->toBe(['unless_yes'])
+        ->and($third->errors->keys())->toBe([])
+        ->and($again->errors->keys())->toBe($first->errors->keys())
+        ->and($second->visibleFields)->not->toContain('when_yes')
+        ->and($first->visibleFields)->not->toContain('unless_yes')
+        ->and($first->visibleFields)->toContain('free');
+});
+
+it('reports a missing required value and accepts a present one for each choice and reference fieldtype', function (string $handle, array $field, mixed $present): void {
+    // An assets field reads its container while the entry is preprocessed; the disk is a
+    // directory of its own per run, removed afterwards, so no worker shares it
+    $disk = 'pinned_assets_'.uniqid();
+    $root = sys_get_temp_dir().'/'.$disk;
+    if ($field['type'] === 'assets') {
+        config(['filesystems.disks.'.$disk => ['driver' => 'local', 'root' => $root]]);
+        Storage::disk($disk)->put('one.jpg', 'image');
+        $container = AssetContainer::make($disk);
+        Assert::assertInstanceOf(Statamic\Assets\AssetContainer::class, $container);
+        $container->disk($disk);
+        $container->save();
+        $field['container'] = $disk;
+    }
+
+    entryValidatorCollection(entryValidatorRequiredField($handle, $field));
+
+    $missing = entryValidatorResult(entryValidatorEntry('missing', ['title' => 'Missing']));
+    $filled = entryValidatorResult(entryValidatorEntry('filled', ['title' => 'Filled', $handle => $present]));
+
+    File::deleteDirectory($root);
+
+    expect($missing->errors->keys())->toBe([$handle])
+        ->and($filled->errors->keys())->toBe([]);
+})->with([
+    'select' => ['pick', ['type' => 'select', 'options' => ['a' => 'A', 'b' => 'B']], 'a'],
+    'checkboxes' => ['boxes', ['type' => 'checkboxes', 'options' => ['a' => 'A', 'b' => 'B']], ['a']],
+    'link' => ['ref', ['type' => 'link'], 'https://example.test/page'],
+    'assets' => ['files', ['type' => 'assets', 'max_files' => 1], ['one.jpg']],
+]);
