@@ -15,9 +15,10 @@ name: CI
 #   share check.
 # - What the mutation job mutates depends on the event. A pull request and a push to `main` mutate only
 #   the PHP files under `mutate-paths` that the commit adds, changes or renames; a commit that changes
-#   none passes with nothing mutated. A `workflow_dispatch` run mutates everything `composer mutate`
-#   covers, under the called workflow's `mutate-full-timeout-minutes` (180 by default). The job fails
-#   on any survivor, untested or uncovered mutant.
+#   none passes with nothing mutated. A `schedule` or `workflow_dispatch` run (Mondays at 07:17 UTC
+#   for the schedule) mutates everything `composer mutate` covers, under the called workflow's
+#   `mutate-full-timeout-minutes` (180 by default; the pull request cap is 45). The job fails on any
+#   survivor, untested or uncovered mutant.
 # - The chain's checks report as `checks / <job name> (<operating system>)`.
 #
 # RUN_REMOTE_CI: budget kill-switch.
@@ -47,12 +48,19 @@ on:
   pull_request:
   push:
     branches: [main]
-  # Lets the workflow be run on demand against a branch.
+  # The full mutation pass, weekly (Mondays at 07:17 UTC). A pull request or a push mutates only the
+  # files it changed.
+  schedule:
+    - cron: '17 7 * * 1'
+  # Lets the workflow be run on demand against a branch; it runs the full mutation pass.
   workflow_dispatch:
 
-# A new push to a pull request cancels that pull request's stale run.
+# A new push to a pull request cancels that pull request's stale run. Every other run (a push to the
+# default branch, a scheduled or manual run) gets a group of its own, keyed on the commit, so a later
+# push never cancels it: GitHub keeps one running and one pending run per group and cancels the
+# pending one when another is queued, whatever `cancel-in-progress` says.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
