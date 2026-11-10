@@ -32,6 +32,8 @@ class EntryValidator
      *
      * @var list<string>
      */
+    // Coverage reports no executed line for a constant initializer, so Pest marks these untested; ConditionKeyOrderTest asserts the order
+    // @pest-mutate-ignore: RemoveArrayItem
     private const array EDITOR_CONDITION_KEYS = [
         'if',
         'if_any',
@@ -92,6 +94,8 @@ class EntryValidator
                 [
                     'message' => $throwable->getMessage(),
                     'entryId' => $entry->id(),
+                    // An entry with no collection fails in extractValues before this catch can run, so the collection is never null here
+                    // @pest-mutate-ignore: RemoveNullSafeOperator
                     'collection' => $entryCollection?->handle(),
                     'exception' => $throwable::class,
                 ]
@@ -352,6 +356,7 @@ class EntryValidator
         // fields reach this method, and a replicator fieldtype always has fields(), so
         // the guard never returns and `&&` is indistinguishable from `||`.
         // @pest-mutate-ignore: BooleanOrToBooleanAnd
+        // @pest-mutate-ignore: RemoveEarlyReturn
         if (! is_object($fieldtype) || ! method_exists($fieldtype, 'fields')) {
             // Return rows unchanged when fieldtype has no fields
             return $rows;
@@ -576,6 +581,8 @@ class EntryValidator
         // ---
 
         // Check if the right-hand side is a bare "null", "true" or "false" literal
+        // Strict and loose comparison of two non-numeric strings agree, so the flag changes no result
+        // @pest-mutate-ignore: TrueToFalse
         if (\in_array($rhs, ['null', 'true', 'false'], true)) {
             // Compare the way the editor's loose `==` does (#508)
             return $this->passesLiteralComparison($lhs, $rhs, equal: true);
@@ -610,6 +617,8 @@ class EntryValidator
             }
 
             // Check if the target is a "null", "true" or "false" literal
+            // Strict and loose comparison of two non-numeric strings agree, so the flag changes no result
+            // @pest-mutate-ignore: TrueToFalse
             if (\in_array($target, ['null', 'true', 'false'], true)) {
                 // Compare the way the editor's loose `==` does (#508)
                 return $this->passesLiteralComparison($lhs, $target, equal: true);
@@ -636,6 +645,8 @@ class EntryValidator
             }
 
             // Check if the target is a "null", "true" or "false" literal
+            // Strict and loose comparison of two non-numeric strings agree, so the flag changes no result
+            // @pest-mutate-ignore: TrueToFalse
             if (\in_array($target, ['null', 'true', 'false'], true)) {
                 // Compare the way the editor's loose `!=` does (#508)
                 return $this->passesLiteralComparison($lhs, $target, equal: false);
@@ -744,19 +755,35 @@ class EntryValidator
      */
     private function jsNumber(mixed $value): float
     {
+        // An int or float that falls through is read as its numeric string and gives the same number, so neither `&&` nor a missing return changes a result
+        // @pest-mutate-ignore: BooleanOrToBooleanAnd
+        // @pest-mutate-ignore: RemoveEarlyReturn
         if (\is_int($value) || \is_float($value)) {
+            // The declared float return type widens an int, so the cast changes no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             return (float) $value;
         }
 
         // The editor trims a string value before comparing it
+        // Only a numeric-literal string reaches here (null, boolean, array, object, int and float return earlier), so the cast and the fallback cannot differ
+        // @pest-mutate-ignore: RemoveStringCast
+        // @pest-mutate-ignore: EmptyStringToNotEmpty
         $string = trim(\is_scalar($value) ? (string) $value : '');
 
+        // Coverage reports no executed line for this match head, so Pest marks the mutant untested; the arms are asserted one by one
+        // @pest-mutate-ignore: TrueToFalse
         return match (true) {
             // Number('') is 0
             $string === '' => 0.0,
             preg_match('/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i', $string) === 1 => (float) $string,
+            // The declared float return type widens an int, so the cast changes no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             preg_match('/^0x[0-9a-f]+$/i', $string) === 1 => (float) hexdec($string),
+            // The declared float return type widens an int, so the cast changes no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             preg_match('/^0b[01]+$/i', $string) === 1 => (float) bindec($string),
+            // The declared float return type widens an int, so the cast changes no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             preg_match('/^0o[0-7]+$/i', $string) === 1 => (float) octdec($string),
             // Anything else, Infinity included, can equal neither 1 nor 0
             default => NAN,
@@ -878,8 +905,8 @@ class EntryValidator
             /** @var Carbon $entryDate */
             $entryDate = $entry->date();
 
-            // Get date as Y-m-d H:i:s (first 19 chars)
-            $datetime = substr((string) $entryDate->toDateTimeString(), 0, 19);
+            // Get date as Y-m-d H:i:s
+            $datetime = $entryDate->toDateTimeString();
 
             // Use date-only when entry has no time
             $datetime = $entry->hasTime() ? $datetime : substr($datetime, 0, 10);

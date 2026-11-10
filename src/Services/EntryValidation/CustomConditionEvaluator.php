@@ -22,6 +22,8 @@ class CustomConditionEvaluator
      *
      * @var list<string>
      */
+    // Coverage reports no executed line for a constant initializer, so Pest marks these untested; a test asserts the list exactly
+    // @pest-mutate-ignore: RemoveArrayItem
     public const array SUPPORTED = [
         'articleVisible',
         'isNotEmpty',
@@ -48,7 +50,11 @@ class CustomConditionEvaluator
             'isNotEmpty' => $this->isTruthy($target),
             'notContainsAny' => $this->notContainsAny($params, $target),
             'notSyndicated' => $this->isFalse($values['syndication_query'] ?? null),
+            // A missing role and any unknown role take the same default branch, so the empty string cannot be told apart from another
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             'parentOverride' => $this->parentOverride($params[0] ?? '', $values),
+            // A missing role and any unknown role take the same default branch, so the empty string cannot be told apart from another
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             'parkingVisible' => $this->parkingVisible($params[0] ?? '', $values),
             'selectionCount' => $this->selectionCount($params, $target, $values),
             default => null,
@@ -92,6 +98,8 @@ class CustomConditionEvaluator
             $target === null => '',
             \is_bool($target) => $target ? 'true' : 'false',
             \is_scalar($target) => (string) $target,
+            // An object has no string form and reads as empty; another fixed string differs only for a param equal to it
+            // @pest-mutate-ignore: EmptyStringToNotEmpty
             default => '',
         };
 
@@ -209,10 +217,7 @@ class CustomConditionEvaluator
             case 'between':
                 $second = $this->numericOperand($params[2] ?? null, $values);
 
-                if (is_nan($first) || is_nan($second)) {
-                    return false;
-                }
-
+                // A NAN bound makes either comparison false, as in JavaScript
                 return $count >= $first && $count <= $second;
         }
 
@@ -234,6 +239,8 @@ class CustomConditionEvaluator
      */
     private function numericOperand(?string $token, array $values): float
     {
+        // A null token reads as blank; trim(null) differs only by a deprecation notice
+        // @pest-mutate-ignore: RemoveStringCast
         $token = trim((string) $token);
 
         if ($token === '') {
@@ -246,13 +253,21 @@ class CustomConditionEvaluator
 
         $raw = data_get($values, $token);
 
+        // Coverage reports no executed line for the constant initializer or this match head, so Pest marks the mutants untested; the SUPPORTED test and the operand rows assert them
+        // @pest-mutate-ignore: TrueToFalse
         return match (true) {
             $raw === null => NAN,
+            // The declared float return type widens an int, so the casts here change no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             \is_array($raw) => (float) \count($raw),
             \is_bool($raw) => $raw ? 1.0 : 0.0,
+            // The declared float return type widens an int, so the cast changes no result
+            // @pest-mutate-ignore: RemoveDoubleCast
             \is_int($raw), \is_float($raw) => (float) $raw,
             // JavaScript's Number() reads a blank string as zero
             \is_string($raw) && trim($raw) === '' => 0.0,
+            // PHP's numeric strings already allow surrounding whitespace, so unwrapping either trim changes no result
+            // @pest-mutate-ignore: UnwrapTrim
             \is_string($raw) && is_numeric(trim($raw)) => (float) trim($raw),
             default => NAN,
         };

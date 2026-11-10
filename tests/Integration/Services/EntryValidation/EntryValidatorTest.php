@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use PHPUnit\Framework\Assert;
 use Statamic\Entries\Collection as StatamicCollection;
 use Statamic\Entries\Entry as StatamicEntry;
@@ -207,9 +209,55 @@ it('reports unreadable entry data as a single error and no visible fields', func
 
     Assert::assertInstanceOf(StatamicBlueprint::class, $failing);
 
+    // Expect one warning that names the failure, the entry and its collection
+    Log::shouldReceive('warning')->once()->with(
+        'EntryValidator: field preProcess failed; treating entry as failing validation',
+        [
+            'message' => 'Malformed field data',
+            'entryId' => $entry->id(),
+            'collection' => ENTRY_VALIDATOR_COLLECTION,
+            'exception' => RuntimeException::class,
+        ]
+    );
+
     $result = app(EntryValidator::class)->validate($entry, $failing);
 
     expect($result->errors->keys())->toBe(['__pre_process__'])
+        ->and($result->errors->get('__pre_process__'))->toBe(['Published entry data could not be read for validation. Fix malformed fields in the entry editor.'])
         ->and($result->attributes)->toBe(['__pre_process__' => 'Entry data'])
         ->and($result->visibleFields)->toBe([]);
+});
+
+it('hands a dated entry its date in the format the blueprint expects', function (bool $timeEnabled, string $stored, string $expected): void {
+    $collection = CollectionFacade::make(ENTRY_VALIDATOR_COLLECTION);
+    $collection->title('Entry validator service');
+    $collection->dated(true);
+    $collection->save();
+
+    $blueprint = Blueprint::makeFromFields(['date' => ['type' => 'date', 'time_enabled' => $timeEnabled]]);
+    $blueprint->setHandle(ENTRY_VALIDATOR_COLLECTION);
+    $blueprint->setNamespace('collections.'.ENTRY_VALIDATOR_COLLECTION);
+    $blueprint->save();
+
+    $entry = entryValidatorEntry('leslie', ['title' => 'Leslie']);
+    $entry->date(Carbon::parse($stored));
+    $entry->save();
+
+    expect(app(EntryValidator::class)->extractValues($entry)['date'])->toBe($expected);
+})->with([
+    'date only' => [false, '2026-03-04', '2026-03-04'],
+    'date and time' => [true, '2026-03-04 05:06:07', '2026-03-04 05:06:07'],
+    'a time on a blueprint without time' => [false, '2026-03-04 05:06:07', '2026-03-04 05:06:07'],
+]);
+
+it('coerces a malformed replicator that follows an absent one', function (): void {
+    entryValidatorCollection([
+        'first' => ['type' => 'replicator', 'sets' => []],
+        'second' => ['type' => 'replicator', 'sets' => []],
+    ]);
+
+    $blueprint = entryValidatorBlueprint(entryValidatorEntry('leslie', ['title' => 'Leslie']));
+
+    expect(app(EntryValidator::class)->sanitizeMalformedReplicatorValues($blueprint, ['second' => 'junk']))
+        ->toBe(['second' => []]);
 });

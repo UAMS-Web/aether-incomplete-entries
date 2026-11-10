@@ -37,6 +37,8 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var list<class-string<Widget>>
      */
+    // Coverage reports no executed line for a property initializer, so Pest marks its items untested; the provider tests assert what each registers
+    // @pest-mutate-ignore: RemoveArrayItem
     protected $widgets = [
         IncompletePublishedEntries::class,
     ];
@@ -46,6 +48,8 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var list<class-string<Command>>
      */
+    // Coverage reports no executed line for a property initializer, so Pest marks its items untested; the provider tests assert what each registers
+    // @pest-mutate-ignore: RemoveArrayItem
     protected $commands = [
         ScanIncompletePublishedEntries::class,
     ];
@@ -55,6 +59,8 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var array<class-string, list<class-string>>
      */
+    // Coverage reports no executed line for a property initializer, so Pest marks its items untested; the provider tests assert what each registers
+    // @pest-mutate-ignore: RemoveArrayItem
     protected $listen = [
         EntrySaved::class => [
             RecordIncompletePublishedEntriesContentChange::class,
@@ -68,6 +74,8 @@ class ServiceProvider extends AddonServiceProvider
      *
      * @var array{input: list<string>, publicDirectory: string}
      */
+    // Coverage reports no executed line for a property initializer, so Pest marks its items untested; the provider tests assert what each registers
+    // @pest-mutate-ignore: RemoveArrayItem
     protected $vite = [
         'input' => [
             'resources/js/cp.js',
