@@ -13,6 +13,7 @@ use PHPUnit\Framework\Assert;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection as CollectionFacade;
 use Statamic\Facades\Entry;
+use Statamic\Facades\Stache;
 use Statamic\Facades\User;
 use Statamic\Sites\Site;
 use Statamic\Stache\Query\EntryQueryBuilder;
@@ -691,4 +692,33 @@ it('scans each distinct configuration once, comparing options strictly and ignor
 
     // The default, limit 1, and limit '1' (the positional entry repeats limit 1)
     expect(offRequestScanOutput())->toHaveCount(3);
+});
+
+it('scans the same entries with the same result after the Stache is cleared and rebuilt', function (): void {
+    // statamic/cms 6.40.0 changed how a cold Stache is cleared; the scan must read the
+    // entries back from the files exactly as it read them from the warm index
+    $failingId = offRequestSeedFailingEntry();
+
+    /** @var Statamic\Entries\Entry $passing */
+    $passing = Entry::make();
+    $passing->collection(OFF_REQUEST_COLLECTION);
+    $passing->slug('passing-off-request');
+    $passing->published(true);
+    $passing->data(['title' => 'Passing Off-Request Entry', 'intro' => 'Present']);
+    $passing->save();
+
+    $scan = static function (): array {
+        $widget = new IncompletePublishedEntriesWidgetTestDouble;
+        $widget->setConfig(['collections' => [OFF_REQUEST_COLLECTION]]);
+
+        return $widget->exposeFailingCandidateEntryIds();
+    };
+
+    $warm = $scan();
+    Stache::clear();
+    $cold = $scan();
+
+    expect($warm['ids'])->toBe([$failingId])
+        ->and($warm['scanned'])->toBe(2)
+        ->and($cold)->toBe($warm);
 });
