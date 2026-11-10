@@ -120,8 +120,53 @@ it('evaluates each custom condition the way its JavaScript does', function (stri
     'selectionCount neq a missing operand, like NaN' => ['selectionCount', ['neq', 'missing'], ['a'], [], true],
     'selectionCount with no params' => ['selectionCount', [], ['a'], [], false],
     'selectionCount with an unknown operator' => ['selectionCount', ['near', '2'], ['a'], [], false],
+
+    // Boundaries and operands that the cases above leave unpinned (#19)
+    'parentOverride address when the parent is an empty string, a top-level location' => ['parentOverride', ['address'], null, ['parent' => ''], true],
+    'parentOverride street on a child owning the street but not the facility, inside a facility' => ['parentOverride', ['street'], null, ['parent' => 'p', 'parent_address_override_query' => true, 'parent_address_override_street_query' => true, 'facility_query' => true], true],
+    'parentOverride street on a child owning street and facility, outside a facility' => ['parentOverride', ['street'], null, ['parent' => 'p', 'parent_address_override_query' => true, 'parent_address_override_street_query' => true, 'parent_address_override_facility_query' => true, 'facility_query' => false], true],
+    'parkingVisible directions that inherit while parking applies' => ['parkingVisible', ['directions'], null, ['facility_query' => true, 'facility' => ['f-1']], false],
+    'parkingVisible directions declining to inherit while no parking applies' => ['parkingVisible', ['directions'], null, ['facility_query' => false, 'parking_query' => false, 'directions_from_parking_inherit_query' => false], false],
+    'selectionCount equals zero on null' => ['selectionCount', ['equals', '0'], null, [], true],
+    'selectionCount equals zero on an empty string' => ['selectionCount', ['equals', '0'], '', [], true],
+    'selectionCount gt at the limit' => ['selectionCount', ['gt', '2'], ['a', 'b'], [], false],
+    'selectionCount gte at the limit' => ['selectionCount', ['gte', '2'], ['a', 'b'], [], true],
+    'selectionCount between at the lower bound' => ['selectionCount', ['between', '2', '5'], ['a', 'b'], [], true],
+    'selectionCount between at the upper bound' => ['selectionCount', ['between', '0', '2'], ['a', 'b'], [], true],
+    'selectionCount between with a missing upper operand' => ['selectionCount', ['between', '1'], ['a', 'b'], [], false],
+    'selectionCount between with a missing lower operand' => ['selectionCount', ['between', 'missing', '5'], ['a', 'b'], [], false],
+    'selectionCount with an operator and no operand' => ['selectionCount', ['gt'], ['a', 'b'], ['x' => 1], false],
+    'selectionCount with a blank operand and a blank-named sibling' => ['selectionCount', ['gte', ' '], ['a'], ['' => 0], false],
+    'selectionCount reads a padded literal operand as its number' => ['selectionCount', ['gt', ' 1 '], ['a', 'b'], [], true],
+    'selectionCount reads a negative decimal literal' => ['selectionCount', ['gt', '-0.5'], null, [], true],
+    'selectionCount against a true sibling, one' => ['selectionCount', ['equals', 'flag'], ['a'], ['flag' => true], true],
+    'selectionCount against a false sibling with nothing selected, zero' => ['selectionCount', ['equals', 'flag'], null, ['flag' => false], true],
+    'selectionCount against a false sibling with one selected' => ['selectionCount', ['equals', 'flag'], ['a'], ['flag' => false], false],
+    'selectionCount against an integer sibling' => ['selectionCount', ['equals', 'limit'], ['a', 'b'], ['limit' => 2], true],
+    'selectionCount against a float sibling' => ['selectionCount', ['equals', 'limit'], ['a', 'b'], ['limit' => 2.0], true],
+    'selectionCount against a blank sibling, zero, with nothing selected' => ['selectionCount', ['equals', 'max'], null, ['max' => ''], true],
+    'selectionCount against a whitespace sibling, zero in JavaScript' => ['selectionCount', ['gt', 'max'], ['a'], ['max' => "  \t"], true],
+    'selectionCount against a non-numeric sibling' => ['selectionCount', ['neq', 'max'], ['a'], ['max' => 'many'], true],
+    'selectionCount against an object sibling' => ['selectionCount', ['neq', 'max'], ['a'], ['max' => new stdClass], true],
 ]);
 
 it('returns null for a custom condition it does not port', function (): void {
     expect((new CustomConditionEvaluator)->evaluate('noSuchCondition', [], 'x', []))->toBeNull();
+});
+
+it('lists exactly the conditions it evaluates', function (): void {
+    // Expect every listed name to evaluate to a bool and the list to hold no other name
+    expect(CustomConditionEvaluator::SUPPORTED)->toBe([
+        'articleVisible',
+        'isNotEmpty',
+        'notContainsAny',
+        'notSyndicated',
+        'parentOverride',
+        'parkingVisible',
+        'selectionCount',
+    ]);
+
+    foreach (CustomConditionEvaluator::SUPPORTED as $name) {
+        expect((new CustomConditionEvaluator)->evaluate($name, ['x', '1'], 'x', []))->toBeBool();
+    }
 });
