@@ -13,6 +13,8 @@ name: CI
 #   call. `mutate: false` leaves the mutation job, and the annotation check that goes with it, to
 #   the ticket that turns them on (UAMS-Web/aether-incomplete-entries#30); `composer ci` runs both
 #   locally in the meantime. `mutate-paths` is the path that job will select changed files from.
+#   `share-floor-seconds` is the summed class time below which the Pest job skips its slowest-class
+#   share check.
 # - The chain's checks report as `checks / <job name> (<operating system>)`.
 #
 # RUN_REMOTE_CI: budget kill-switch.
@@ -63,6 +65,10 @@ jobs:
       linux-only: true
       mutate: false
       mutate-paths: src
+      # The whole suite sums to about 16 seconds on a runner, so one class holding a third of it
+      # says little about the band; the share check starts at 30 seconds, the 900-second backstop
+      # applies at any size.
+      share-floor-seconds: 30
 
   # The chain checks the emoji sweep; it does not check the decision log.
   decision-log:
