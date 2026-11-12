@@ -45,3 +45,13 @@ Oldest first, one entry per closed decision, so **a new entry is appended to the
 **Rejected.** Keeping the empty file renamed: it ships and publishes nothing, and the test that pins it would pin an empty array.
 
 **Companion.** UAMS-Web/aether-incomplete-entries#2.
+
+## 2026-11-12: The add-on goes to Packagist on MIT, ahead of UAMS legal's decision (UAMS-Web/aether-incomplete-entries#51)
+
+**Decision.** The add-on is published on Packagist (`v0.1.0`, `v0.2.0` and `v0.2.1` are tagged) and is MIT licensed (`LICENSE`, `"license": "MIT"`), matching `UAMS-Web/aether-redirects`, ahead of the general decision in `UAMS-Web/uams-statamic#261`. The Marketplace is not part of this decision.
+
+**Why.** A public Packagist package needs a declared license, and the sibling add-ons are MIT. One license across them keeps the choice in one place, and the file can change if UAMS legal decides otherwise.
+
+**Rejected.** Waiting for UAMS legal before declaring a license: the package is already listed and tagged, and a listed package with no license grants consumers no rights to use it.
+
+**Companion.** UAMS-Web/aether-incomplete-entries#51, `UAMS-Web/uams-statamic#261`.

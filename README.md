@@ -60,3 +60,7 @@ Developing against a host application is covered in [the development guide](docs
 ### Namespace
 
 The add-on's code is in `UAMSWeb\Aether\IncompleteEntries\`. The convention it follows: every add-on in the Aether ecosystem sits under `UAMSWeb\Aether\`, as `UAMSWeb\Aether\<Product>` or `UAMSWeb\Aether\<Family>\<Product>` where a family groups packages. The level stays `UAMSWeb\<Product>` only for an add-on outside that ecosystem. The `autoload.psr-4` key maps the whole prefix to `src/` ([PSR-4](https://www.php-fig.org/psr/psr-4/) allows a prefix of any depth), so files under `src/` do not move when the prefix changes. A prefix has one owner or none: `UAMSWeb\Aether\Forms\Settings\` and `UAMSWeb\Aether\Forms\Multisite\` are two packages' keys, and no package maps `UAMSWeb\Aether\Forms\`. A package may own its prefix with a companion nested inside it, such as `UAMSWeb\Aether\People\ListingsManagement\` beside a package that maps `UAMSWeb\Aether\People\`. Composer picks the longest matching prefix, so a nested prefix works only when the outer package has no directory under `src/` named after the inner one.
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).

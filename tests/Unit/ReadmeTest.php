@@ -15,11 +15,11 @@ declare(strict_types=1);
 /**
  * The parsed `composer.json`.
  *
- * @return array{name: string, license?: string, require: array<string, string>} The manifest's name, license and requirements.
+ * @return array{name: string, license: string, require: array<string, string>} The manifest's name, license and requirements.
  */
 function readmeComposerManifest(): array
 {
-    /** @var array{name: string, license?: string, require: array<string, string>} */
+    /** @var array{name: string, license: string, require: array<string, string>} */
     return json_decode((string) file_get_contents(dirname(__DIR__, 2).'/composer.json'), true, flags: JSON_THROW_ON_ERROR);
 }
 
@@ -49,12 +49,12 @@ it('states the statamic/cms floor that composer.json requires', function (): voi
     expect(readmeText())->toContain('Statamic '.$floor.' or later');
 });
 
-it('names the license that composer.json declares, once it declares one', function (): void {
-    // Read the declared license, which the template leaves out until UAMS legal decides (uams-statamic#261)
-    $license = readmeComposerManifest()['license'] ?? null;
+it('names the license that composer.json declares and points at the file', function (): void {
+    // Read the declared license
+    $license = readmeComposerManifest()['license'];
 
-    // Expect the README to name the license and point at the file, or no license to be declared
-    expect($license === null || str_contains(readmeText(), $license.'. See [`LICENSE`](LICENSE)'))->toBeTrue();
+    // Expect the README to name the license and point at the file
+    expect(readmeText())->toContain($license.'. See [`LICENSE`](LICENSE)');
 });
 
 it('requires the package by the name composer.json gives it', function (): void {
