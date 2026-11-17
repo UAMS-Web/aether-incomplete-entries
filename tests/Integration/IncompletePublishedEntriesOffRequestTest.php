@@ -722,3 +722,89 @@ it('scans the same entries with the same result after the Stache is cleared and 
         ->and($warm['scanned'])->toBe(2)
         ->and($cold)->toBe($warm);
 });
+
+/**
+ * A published localization of an origin entry in the `health` site, carrying its own data.
+ */
+function offRequestLocalize(Statamic\Entries\Entry $origin, string $title, string $intro): Statamic\Entries\Entry
+{
+    $localization = $origin->makeLocalization('health');
+    Assert::assertInstanceOf(Statamic\Entries\Entry::class, $localization);
+    $localization->published(true);
+    $localization->data(['title' => $title, 'intro' => $intro]);
+    $localization->save();
+
+    return $localization;
+}
+
+it('judges an origin entry and its localization on their own data, and the same after the Stache is cleared and rebuilt', function (): void {
+    // statamic/cms 6.41.0 speeds up entry file filtering on multisite and cold Stache
+    // builds; an origin entry and its localization live in separate site directories and
+    // each must be read back and judged on its own data, warm or cold
+    $originalSites = Statamic\Facades\Site::config();
+    Statamic\Facades\Site::setSites([
+        'default' => ['name' => 'Default', 'locale' => 'en_US', 'url' => '/'],
+        'health' => ['name' => 'Health', 'locale' => 'en_US', 'url' => '/health/'],
+    ]);
+
+    try {
+        // The origin entry in the default site lacks `intro`; its localization supplies it
+        $failingOriginId = offRequestSeedFailingEntry();
+
+        $collection = CollectionFacade::find(OFF_REQUEST_COLLECTION);
+        Assert::assertNotNull($collection);
+        $collection->sites(['default', 'health']);
+        $collection->save();
+
+        /** @var Statamic\Entries\Entry $failingOrigin */
+        $failingOrigin = Entry::find($failingOriginId);
+        offRequestLocalize($failingOrigin, 'Passing Localization', 'Present');
+
+        // The reverse: an origin that passes, whose localization blanks the field
+        /** @var Statamic\Entries\Entry $passingOrigin */
+        $passingOrigin = Entry::make();
+        $passingOrigin->collection(OFF_REQUEST_COLLECTION);
+        $passingOrigin->locale('default');
+        $passingOrigin->slug('passing-origin');
+        $passingOrigin->published(true);
+        $passingOrigin->data(['title' => 'Passing Origin', 'intro' => 'Present']);
+        $passingOrigin->save();
+
+        $failingLocalization = offRequestLocalize($passingOrigin, 'Failing Localization', '');
+
+        $scan = static function (): array {
+            $widget = new IncompletePublishedEntriesWidgetTestDouble;
+            $widget->setConfig(['collections' => [OFF_REQUEST_COLLECTION]]);
+
+            return $widget->exposeFailingCandidateEntryIds();
+        };
+
+        $expected = [$failingOriginId, $failingLocalization->id()];
+        sort($expected);
+
+        $warm = $scan();
+        Stache::clear();
+        $cold = $scan();
+
+        $warmIds = $warm['ids'];
+        sort($warmIds);
+
+        expect($warm['scanned'])->toBe(4)
+            ->and($warmIds)->toBe($expected)
+            ->and($cold)->toBe($warm);
+    } finally {
+        // An origin cannot be deleted while a localization exists, and the shared teardown
+        // deletes origins, so the localizations go first
+        /** @var EntryQueryBuilder $query */
+        $query = Entry::query();
+        $query->where('collection', OFF_REQUEST_COLLECTION);
+        $query->where('site', 'health');
+        /** @var Collection<int, Statamic\Entries\Entry> $localizations */
+        $localizations = $query->get();
+        foreach ($localizations as $localization) {
+            $localization->delete();
+        }
+
+        Statamic\Facades\Site::setSites($originalSites);
+    }
+});
