@@ -10,6 +10,7 @@ use PHPUnit\Framework\Assert;
 use Statamic\Entries\Collection as StatamicCollection;
 use Statamic\Entries\Entry as StatamicEntry;
 use Statamic\Facades\AssetContainer;
+use Statamic\Facades\Blink;
 use Statamic\Facades\Blueprint;
 use Statamic\Facades\Collection as CollectionFacade;
 use Statamic\Facades\Entry;
@@ -338,3 +339,53 @@ it('reports a missing required value and accepts a present one for each choice a
     'link' => ['ref', ['type' => 'link'], 'https://example.test/page'],
     'assets' => ['files', ['type' => 'assets', 'max_files' => 1], ['one.jpg']],
 ]);
+
+/**
+ * Drop what Statamic keeps for the length of one request, as the start of the next request does.
+ */
+function entryValidatorStartNewRequest(): void
+{
+    // The collection keeps its entry blueprints in the default store, the repository in three of its own
+    Blink::flush();
+
+    foreach (['blueprints.found', 'blueprints.from-file', 'blueprints.paths-in-namespace'] as $store) {
+        $blink = Blink::store($store);
+        Assert::assertInstanceOf(Spatie\Blink\Blink::class, $blink);
+        $blink->flush();
+    }
+}
+
+it('judges the next entry against a blueprint file that changed on disk', function (): void {
+    // statamic/cms 6.41.0 keeps parsed blueprint YAML between requests and parses YAML faster;
+    // an edit to the blueprint file must reach the next validation, never a stale parse
+    entryValidatorCollection([
+        'summary' => ['type' => 'text'],
+    ]);
+
+    $before = entryValidatorResult(entryValidatorEntry('before-edit', ['title' => 'Before']));
+
+    $path = entryValidatorBlueprint(entryValidatorEntry('path-probe', ['title' => 'Probe']))->path();
+    Assert::assertIsString($path);
+    $original = File::get($path);
+
+    try {
+        // Make `summary` required by rewriting the file itself, as an editor would
+        $required = str_replace("              type: text\n", "              type: text\n              validate:\n                - required\n", $original);
+        Assert::assertNotSame($original, $required);
+        File::put($path, $required);
+        entryValidatorStartNewRequest();
+
+        $whileRequired = entryValidatorResult(entryValidatorEntry('while-required', ['title' => 'Required']));
+
+        File::put($path, $original);
+        entryValidatorStartNewRequest();
+
+        $after = entryValidatorResult(entryValidatorEntry('after-revert', ['title' => 'Reverted']));
+    } finally {
+        File::put($path, $original);
+    }
+
+    expect($before->errors->keys())->toBe([])
+        ->and($whileRequired->errors->keys())->toBe(['summary'])
+        ->and($after->errors->keys())->toBe([]);
+});
