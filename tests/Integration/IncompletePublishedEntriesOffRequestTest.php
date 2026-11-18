@@ -158,7 +158,14 @@ afterEach(function (): void {
     $query->where('collection', OFF_REQUEST_COLLECTION);
     /** @var Collection<int, Statamic\Entries\Entry> $entries */
     $entries = $query->get();
-    foreach ($entries as $entry) {
+
+    // Delete localizations before their origins: statamic/cms 6.41 refuses to
+    // delete an entry that still has localizations, and the query's order is not
+    // guaranteed (CI on Linux returned an origin before its localization).
+    $localizationsFirst = $entries->sortByDesc(
+        static fn (Statamic\Entries\Entry $entry): bool => $entry->hasOrigin() === true,
+    );
+    foreach ($localizationsFirst as $entry) {
         $entry->delete();
     }
 
