@@ -22,8 +22,11 @@ it('is discovered by Statamic as an add-on', function (): void {
 
 it('registers the dashboard widget under its handle', function (): void {
     // Expect Statamic to resolve the widget by the handle the site used
-    expect(app('statamic.widgets')->has('incomplete_published_entries'))->toBeTrue()
-        ->and(app('statamic.widgets')->get('incomplete_published_entries'))->toBe(IncompletePublishedEntries::class);
+    // `app()` returns mixed for a string binding, so the registry is read as the collection it is
+    $widgets = collect(app('statamic.widgets'));
+
+    expect($widgets->has('incomplete_published_entries'))->toBeTrue()
+        ->and($widgets->get('incomplete_published_entries'))->toBe(IncompletePublishedEntries::class);
 });
 
 it('registers the scan command under its signature', function (): void {
