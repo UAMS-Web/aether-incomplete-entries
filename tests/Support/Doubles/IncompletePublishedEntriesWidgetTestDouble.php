@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace UAMSWeb\Aether\IncompleteEntries\Tests\Support\Doubles;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\MessageBag;
 use Statamic\Entries\Entry as StatamicEntry;
 use Statamic\Fields\Blueprint;
@@ -146,5 +147,16 @@ class IncompletePublishedEntriesWidgetTestDouble extends IncompletePublishedEntr
     public function exposeFailingCandidateEntryIds(): array
     {
         return $this->failingCandidateEntryIds();
+    }
+
+    /**
+     * Expose the one-query lookup by id, so an empty id list can be pinned directly (UAMS-Web/aether-incomplete-entries#83).
+     *
+     * @param  list<string>  $ids
+     * @return Collection<int, StatamicEntry>
+     */
+    public function exposeEntriesWithIds(array $ids): Collection
+    {
+        return $this->entriesWithIds($ids);
     }
 }
