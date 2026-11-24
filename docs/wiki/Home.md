@@ -1,17 +1,19 @@
-Replace this paragraph with what the add-on does and who it is for.
+Written against v0.2.4.
 
-This wiki holds the documentation: a walkthrough, task guides by role, the reference, and troubleshooting. The [README](https://github.com/UAMS-Web/aether-incomplete-entries#readme) keeps an overview, the requirements and installation.
+Aether Incomplete Entries is a Statamic add-on that checks every published entry against its blueprint and lists the ones that fail, so editors can find and complete them. The list appears as a Control Panel dashboard widget, and a scheduled command keeps it current.
 
-The pages in this folder are skeletons, one per page shape the `github-wiki` skill describes. Copy each, fill it in, rename it for its subject, and keep Home, the sidebar and the footer listing the same pages under the same labels.
+This wiki holds the documentation: a walkthrough, task guides, the reference, and troubleshooting. The [README](https://github.com/UAMS-Web/aether-incomplete-entries#readme) keeps an overview, the requirements and installation.
 
 ## Getting started
 
 - [Installation (README)](https://github.com/UAMS-Web/aether-incomplete-entries#installation): add the package to a Statamic install.
-- [Walkthrough](Walkthrough.md): a first use of the add-on, from nothing to a visible result.
+- [Walkthrough](Walkthrough.md): from a fresh install to a list of failing entries on the dashboard.
 
 ## Guides
 
-- [Task guide](Task-guide.md): one task, the steps, and the reference it used.
+- [Limiting the audit](Limiting-the-audit.md): audit some collections only, or cap how many entries one scan checks.
+- [Scheduling the scan yourself](Scheduling-the-scan-yourself.md): turn off the built-in schedule and run the command from the application.
+- [Adding a custom condition](Adding-a-custom-condition.md): teach the audit a display condition your site registers in JavaScript.
 
 ## Troubleshooting
 
@@ -19,7 +21,11 @@ The pages in this folder are skeletons, one per page shape the `github-wiki` ski
 
 ## Reference
 
-- [Reference](Reference.md): every setting, tag, command or permission of one area.
+- [Widget](Widget.md): the dashboard widget, its options and the states it shows.
+- [Scan command](Scan-command.md): `cp:scan-incomplete-published-entries`.
+- [Configuration](Configuration.md): the config file's keys.
+- [Custom conditions](Custom-conditions.md): the seven shipped conditions and the `CustomCondition` contract.
+- [Validation service](Validation-service.md): `EntryValidator` and its result.
 
 ## Project
 
