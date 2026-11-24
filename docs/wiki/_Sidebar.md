@@ -7,7 +7,9 @@
 
 **Guides**
 
-- [Task guide](Task-guide.md)
+- [Limiting the audit](Limiting-the-audit.md)
+- [Scheduling the scan yourself](Scheduling-the-scan-yourself.md)
+- [Adding a custom condition](Adding-a-custom-condition.md)
 
 **Troubleshooting**
 
@@ -15,7 +17,11 @@
 
 **Reference**
 
-- [Reference](Reference.md)
+- [Widget](Widget.md)
+- [Scan command](Scan-command.md)
+- [Configuration](Configuration.md)
+- [Custom conditions](Custom-conditions.md)
+- [Validation service](Validation-service.md)
 - [README](https://github.com/UAMS-Web/aether-incomplete-entries#readme)
 
 **Project**
